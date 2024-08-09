@@ -1,6 +1,7 @@
 # LandAreaCalculator
 Calculates land area at the tip of your mouse.
 *How to use?
+
 ->Circle an area on the map to calculate the land area your circle corresponds to with ratio 2cm:~141.421m or ~75.59px:~141.421m. Please do not zoom because accuracy will be lost while doing so.
 *How does the program work?
 ->The program uses HTML5 <canvas> and utilizes shoelace method to calculate area of shapes then apply a ratio to get land area.
