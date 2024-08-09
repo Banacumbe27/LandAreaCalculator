@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Area Calculator</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <div style="position:absolute;left:70%;top:0;z-index:0;">
+<h2>Khoanh một vùng trên bản đồ để tính diện tích vùng đó theo tỉ lệ 2cm:~141.421m hay ~75.59px:~141.421m.Xin đừng zoom,tính năng đó chưa được hoàn thiện và thiếu độ chính xác.  </h2>
+<br>
+<h2>Circle an area on the map to calculate the land area your circle corresponds to with ratio 2cm:~141.421m or ~75.59px:~141.421m. Please do not zoom because accuracy will be lost while doing so.</h2>
+<br>
+<h1 style="border:5px solid black" id="areaOutput">Calculated Area:</h1>
+</div>
+    <canvas id="drawingCanvas" width="1000" height="600" style="position:absolute;top:0;left:0;"></canvas> 
+    <iframe style="pointer-events:none;position:absolute;top:0;left:0;z-index:-1;" id="googleMaps"
+    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.511579595755!2d106.65532687486976!3d10.772074989376447!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752ec3c161a3fb%3A0xef77cd47a1cc691e!2sHo%20Chi%20Minh%20City%20University%20of%20Technology%20(HCMUT)!5e0!3m2!1sen!2s!4v1723038251888!5m2!1sen!2s"
+     width="1000" height="600" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+     <div style="position:absolute;bottom:0;">
+        <h1>📍<select oninput="changeLocation(value)" style="font-size: 30px;">
+            <option value="HCMUT">HCMUT</option>
+            <option value="PTNKcs1">PTNKcs1</option>
+            <option value="PTNKcs2">PTNKcs2</option>
+            <option value="Stadium">Thống Nhất Stadium</option>
+            <option value="ManhattanIsland">Manhattan Island</option>
+        </select>        Made by Duy Nguyen<a href="https://github.com/Banacumbe27">Follow me on    GitHub</a> </h2>
+     <h2 ><input type="checkbox" oninput="toggleMode()" checked style="width:40px;height:40px" >ToggleDrawMode/MapControlMode
+        <button style="width:150px;height:50px;font-size:40px" onclick="clearCanvas()">Clear</button>
+        <input type="range" value="0">
+    </h1>
+     </div>
+</body>
+<script>
+const canvas=document.getElementById('drawingCanvas');
+const googleMaps=document.getElementById('googleMaps');
+const context=canvas.getContext('2d');
+const realSize={width:canvas.width,height:canvas.height};
+const simulatedSize={width:50,height:50};
+let isDrawing=false;
+let firstDraw=true;
+let brushWidth=10;
+let points=[];
+let shapeClosed=false;
+let drawMode=true;
+canvas.addEventListener('mousedown',startDrawing);
+canvas.addEventListener('mousemove',draw);
+canvas.addEventListener('mouseup',stopDrawing);
+let zoom=1000;
+let embedURL=`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d${zoom}!2d106.66383987486951!3d10.758904989388832!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752ee53a70cb6b%3A0x1be189ef14d90265!2sHigh%20School%20for%20the%20Gifted%20VNUHCM!5e0!3m2!1sen!2s!4v1723104759315!5m2!1sen!2s`
+function changeLocation(value){
+    let newLocation=(value=='HCMUT')?"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.511579595755!2d106.65532687486976!3d10.772074989376447!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752ec3c161a3fb%3A0xef77cd47a1cc691e!2sHo%20Chi%20Minh%20City%20University%20of%20Technology%20(HCMUT)!5e0!3m2!1sen!2s!4v1723038251888!5m2!1sen!2s":
+    (value=="PTNKcs1")?"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.511579595755!2d106.66383987486951!3d10.758904989388832!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752ee53a70cb6b%3A0x1be189ef14d90265!2sHigh%20School%20for%20the%20Gifted%20VNUHCM!5e0!3m2!1sen!2s!4v1723104759315!5m2!1sen!2s":
+    (value=="PTNKcs2")?"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.511579595755!2d106.7945685781407!3d10.877555161629976!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3174d982534f9cc7%3A0x1c61a16ab34a2e57!2sHigh%20School%20for%20the%20Gifted%20VNUHCM%20-%20Campus%202!5e0!3m2!1sen!2s!4v1723104882798!5m2!1sen!2s":
+    (value=="ManhattanIsland")?"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.511579595755!2d-75.92015328277267!3d44.35224552696177!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4ccd3ecc61ad9a21%3A0xa8c77e479fea035b!2sManhattan%20Island!5e0!3m2!1sen!2s!4v1723105030980!5m2!1sen!2s":
+    (value=="Stadium")?"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.511579595755!2d106.66070137486955!3d10.760698589387067!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752eefa2e92cbf%3A0x55bfa423a5c918e4!2sThong%20Nhat%20Stadium!5e0!3m2!1sen!2s!4v1723109519700!5m2!1sen!2s":
+    0;
+    googleMaps.src=newLocation;
+}
+function clearCanvas(){
+    points=[];
+    context.clearRect(0,0,canvas.width,canvas.height);
+    document.getElementById('areaOutput').textContent="Calculated area:"
+}
+//canvas.addEventListener('mouseout',stopDrawing);
+function toggleMode(){
+drawMode=!drawMode;
+if(drawMode){
+    canvas.style.pointerEvents='auto';
+    googleMaps.style.pointerEvents='none';
+}
+if(!drawMode){
+    canvas.style.pointerEvents='none';
+    googleMaps.style.pointerEvents='auto';
+}
+}
+function startDrawing(event){
+    const rect=canvas.getBoundingClientRect();
+    let x=event.clientX-rect.left;
+    let y=event.clientY-rect.top;
+    context.beginPath();
+    context.strokeStyle='red';
+    if(!isDrawing){
+    isDrawing=true;
+    points=[];
+    context.clearRect(0,0,canvas.width,canvas.height);
+}
+    points.push({x:x,y:y});
+    draw(event);
+}
+function draw(event){
+    if(!isDrawing)return;
+    const rect=canvas.getBoundingClientRect();
+    let x=event.clientX-rect.left;
+    let y=event.clientY-rect.top;
+
+    points.push({x:x,y:y});
+    context.globalAlpha=1;
+    context.lineCap='round';
+    context.lineWidth=brushWidth;
+    context.lineTo(x,y);
+    context.stroke();
+    context.moveTo(x,y);
+}
+function stopDrawing(event){
+isDrawing=false;
+points.push(points[0]);
+    context.lineTo(points[0].x,points[0].y);
+    context.stroke();
+    document.getElementById('areaOutput').textContent=`Calculated Area: ${px2ToM2(calculateArea()).toFixed(2)}m^2`;
+    console.log(calculateArea());
+}
+function getPixelData(x,y){//Good for debugging, though I don't use it in this project much
+    const rect=canvas.getBoundingClientRect;
+  //  x-=rect.left;
+  //  y-=rect.top;
+    const pixel=context.getImageData(x,y,1,1).data;
+    return{
+    r:pixel[0],
+    g:pixel[1],
+    b:pixel[2],
+    a:pixel[3]
+    };
+}
+function px2ToM2(areaIn_sqPixel){
+return (areaIn_sqPixel/8928.01)*20000;
+}
+function calculateArea(){//google: Gauss's Area formula or Shoelace method
+    let a=0,b=0;
+    for(let i=0;i<points.length-1;i++){
+        a+=points[i].x*points[i+1].y;
+        b+=points[i].y*points[i+1].x;
+    }
+    let area=Math.abs(a-b)/2;
+    return area;
+}
+</script>
+</html>
